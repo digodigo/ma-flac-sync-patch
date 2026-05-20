@@ -1,0 +1,32 @@
+Subject: [PATCH] squeezelite: use mp3 instead of flac in multi-client sync URL
+
+Music Assistant 2.8.7 hardcodes `fmt=flac` in the multi-client sync URL sent
+to grouped slimproto players. Classic Logitech Squeezebox hardware
+(Boom / Radio / Touch — original SqueezeOS firmware, MAC-OUI 00:04:20)
+does NOT advertise FLAC in its slimproto HELO capability list. MA sends
+FLAC anyway. The result: players accept the stream, slimproto STAT frames
+advance the position counter, MA shows "playing" — but no audio reaches
+the speakers, because the firmware FLAC decoder does not produce usable
+PCM at the forced FLAC output format.
+
+Switching the sync-mode output to `fmt=mp3` (which every classic Squeezebox
+firmware decodes natively in hardware) restores audio in sync mode.
+
+This is a one-line local workaround until MA upstream honors per-player
+`output_codec` setting in the multi-client sync path (currently it only
+honors it on the solo playback path).
+
+Patches: music_assistant/providers/squeezelite/player.py
+
+diff --git a/music_assistant/providers/squeezelite/player.py b/music_assistant/providers/squeezelite/player.py
+--- a/music_assistant/providers/squeezelite/player.py
++++ b/music_assistant/providers/squeezelite/player.py
+@@ -278,7 +278,7 @@
+             audio_source=audio_source, audio_format=master_audio_format
+         )
+         base_url = (
+-            f"{self.mass.streams.base_url}/slimproto/multi?player_id={self.player_id}&fmt=flac"
++            f"{self.mass.streams.base_url}/slimproto/multi?player_id={self.player_id}&fmt=mp3"
+         )
+ 
+         # Count how many clients will connect
